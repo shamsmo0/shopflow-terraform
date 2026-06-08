@@ -45,6 +45,28 @@ resource "azurerm_lb_backend_address_pool" "lb_pool" {
   loadbalancer_id = azurerm_lb.internal_lb.id
 }
 
+resource "azurerm_lb_probe" "lb_probe" {
+  for_each            = toset(["80", "443", "3000", "8000"])
+  loadbalancer_id     = azurerm_lb.internal_lb.id
+  name                = "tcp-probe-${each.value}"
+  protocol            = "Tcp"
+  port                = tonumber(each.value)
+  interval_in_seconds = 15
+  number_of_probes    = 2
+}
+
+resource "azurerm_lb_rule" "lb_rule" {
+  for_each                       = toset(["80", "443", "3000", "8000"])
+  loadbalancer_id                = azurerm_lb.internal_lb.id
+  name                           = "tcp-rule-${each.value}"
+  protocol                       = "Tcp"
+  frontend_port                  = tonumber(each.value)
+  backend_port                   = tonumber(each.value)
+  frontend_ip_configuration_name = "internal-frontend-ip"
+  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.lb_pool.id]
+  probe_id                       = azurerm_lb_probe.lb_probe[each.value].id
+}
+
 resource "azurerm_linux_virtual_machine_scale_set" "backend_vmss" {
   name                = "backend-vmss"
   resource_group_name = var.resource_group.name
@@ -56,6 +78,10 @@ resource "azurerm_linux_virtual_machine_scale_set" "backend_vmss" {
     acr_login_server = var.config.acr.login_server
     acr_username     = var.config.acr.username
     acr_password     = var.config.acr.password
+    db_name          = azurerm_mysql_flexible_database.main_db.name
+    db_user          = azurerm_mysql_flexible_server.mysql_server.administrator_login
+    db_password      = azurerm_mysql_flexible_server.mysql_server.administrator_password
+    db_host          = azurerm_mysql_flexible_server.mysql_server.fqdn
   }))
 
   lifecycle {

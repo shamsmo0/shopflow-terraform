@@ -1,9 +1,8 @@
 
 terraform {
   backend "azurerm" {
-    access_key           = var.state.access_key
-    storage_account_name = var.state.storage_account_name
-    container_name       = "tfstate"
-    key                  = "terraform.tfstate"
+
+    container_name = "tfstate"           # Can be passed via `-backend-config=`"container_name=<container name>"` in the `init` command.
+    key            = "terraform.tfstate" # Can be passed via `-backend-config=`"key=<blob key name>"` in the `init` command.
   }
 }

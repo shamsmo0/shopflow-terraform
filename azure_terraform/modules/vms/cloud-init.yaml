@@ -1,7 +1,10 @@
 #cloud-config
 package_update: true
 package_upgrade: true
-
+swap:
+  filename: /swapfile
+  size: 2G
+  maxsize: 2G
 packages:
   - curl
 
@@ -15,17 +18,52 @@ write_files:
       ACR_REGISTRY="${acr_login_server}"
       ACR_USERNAME="${acr_username}"
       ACR_PASSWORD="${acr_password}"
-      IMAGE_NAME="ecomerce-backend:latest"
+      IMAGE_NAME="ecommerce-backend:latest"
 
       echo "Logging into Azure Container Registry..."
       # Use --password-stdin to prevent password warnings in logs
       echo "$ACR_PASSWORD" | docker login "$ACR_REGISTRY" --username "$ACR_USERNAME" --password-stdin
 
-      # echo "Pulling Docker image..."
-      # docker pull "$${ACR_REGISTRY}/$${IMAGE_NAME}"
+      echo "Pulling Docker image..."
 
-      # echo "Logging out to clean up credentials..."
-      # docker logout "$ACR_REGISTRY"
+      docker pull "$${ACR_REGISTRY}/$${IMAGE_NAME}"
+      cat << 'EOF' > /tmp/.env
+      PORT=3000
+      NODE_ENV=production
+
+      # Public URLs (CORS + email templates)
+      BASE_URL=http://localhost:8080
+      FRONTEND_URL=http://localhost:3000
+
+      DB_NAME=${db_name}
+      DB_USER=${db_user}
+      DB_PASSWORD=${db_password}
+      DB_HOST=${db_host}
+
+      JWT_SECRET=super_secret_jwt_token_123
+      ADMIN_JWT_SECRET=super_secret_admin_jwt_token_123
+      JWT_REFRESH_SECRET=super_secret_refresh_jwt_token_123
+      JWT_ACCESS_EXPIRES_IN=24h
+      JWT_REFRESH_EXPIRES_IN=30d
+
+      EMAIL_USER=
+      EMAIL_PASSWORD=
+
+      GOOGLE_CLIENT_ID=
+
+      FACEBOOK_URL=
+      TWITTER_URL=
+      INSTAGRAM_URL=
+      LOGO_URL=http://localhost:8080/static/image/STRIKETECH-1.png
+
+      SMTP_HOST=
+      SMTP_PORT=
+      SMTP_USER=
+      SMTP_PASSWORD=
+      SMTP_FROM=
+      EOF
+
+      docker run -d --name my-backend-app --env-file /tmp/.env -p 8000:3000 "$${ACR_REGISTRY}/$${IMAGE_NAME}"
 
 runcmd:
   # 1. Download and run the official Docker convenience installation script

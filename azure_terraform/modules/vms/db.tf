@@ -24,6 +24,21 @@ resource "azurerm_mysql_flexible_server" "mysql_server" {
   private_dns_zone_id = azurerm_private_dns_zone.mysql_dns.id
 
   depends_on = [azurerm_private_dns_zone_virtual_network_link.mysql_dns_link]
+
+  lifecycle {
+    ignore_changes = [
+      zone,
+      high_availability[0].standby_availability_zone
+    ]
+  }
+}
+
+resource "azurerm_mysql_flexible_database" "main_db" {
+  name                = "shopflow_db"
+  resource_group_name = var.resource_group.name
+  server_name         = azurerm_mysql_flexible_server.mysql_server.name
+  charset             = "utf8mb3"
+  collation           = "utf8mb3_unicode_ci"
 }
 
 resource "azurerm_network_security_group" "db_nsg" {
