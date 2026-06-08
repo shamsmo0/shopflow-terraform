@@ -18,9 +18,9 @@ const wishlistRoutes = require('./WishlistRoute');
 
 
 const registerRoutes = (app) => {
-    app.get('/', (req, res) => {
-        res.render('home');
-    });
+   app.get('/', (req, res) => {
+    res.send('Backend is running');
+});
     staticRoutes.setupStaticRoutes(app); 
 
     app.use('/auth', authRoutes);

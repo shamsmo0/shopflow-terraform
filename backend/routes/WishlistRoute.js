@@ -6,7 +6,7 @@ const {
     getMyWishlist,
     addWishlistItem,
     removeWishlistItem,
-} = require('../controller/Wishlist/WishlistController');
+} = require('../controller/wishlist/WishlistController');
 
 router.get('/status/:productId', authenticate, getWishlistStatus);
 router.get('/', authenticate, getMyWishlist);
