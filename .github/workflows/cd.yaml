@@ -82,6 +82,7 @@ jobs:
         run: |
           cat <<EOF > config.tfbackend
           storage_account_name = "${{ secrets.TF_STATE_STORAGE_ACCOUNT }}"
+          use_azuread_auth = true.
           EOF
 
       - name: Download Terraform Plan
