@@ -4,16 +4,16 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'frontend/**'   
+    #paths:
+      # - 'frontend/**'   
   pull_request:
     branches:
       - main
     types:
       - opened
       - synchronize
-    paths:
-      - 'frontend/**' 
+    #paths:
+   #   - 'frontend/**' 
 
 jobs:
   build-and-push:
