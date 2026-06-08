@@ -1,0 +1,94 @@
+name: Terraform Deploy
+
+on:
+  pull_request: 
+    branches: 
+      - main
+    types:
+      - closed
+
+jobs:
+  terraform-plan:
+    if: github.event.pull_request.merged == true
+    name: 'Terraform Plan'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./azure_terraform
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Generate tfbackend and tfvars files
+        run: |
+          # Create config.tfbackend
+          cat <<EOF > config.tfbackend
+          access_key           = "${{ secrets.TF_STATE_ACCESS_KEY }}"
+          storage_account_name = "${{ secrets.TF_STATE_STORAGE_ACCOUNT }}"
+          EOF
+          
+          # Create terraform.tfvars
+          cat <<EOF > terraform.tfvars
+          config = {
+            username     = "${{ secrets.VM_USERNAME }}"
+            ssh_key_path = "${{ secrets.VM_SSH_KEY_PATH }}"
+            password     = "${{ secrets.VM_PASSWORD }}"
+          }
+          
+          state = {
+            storage_account_name = "${{ secrets.TF_STATE_STORAGE_ACCOUNT }}"
+            access_key           = "${{ secrets.TF_STATE_ACCESS_KEY }}"
+          }
+          EOF
+
+      - name: Terraform Init
+        # Tell Terraform to use the backend config file we just created
+        run: terraform init -backend-config=config.tfbackend
+
+      - name: Terraform Plan
+        # Terraform will automatically pick up terraform.tfvars
+        run: terraform plan -out=tfplan
+
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: tfplan
+
+  terraform-apply:
+    if: github.event.pull_request.merged == true
+    name: 'Terraform Apply'
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    environment: production 
+    defaults:
+      run:
+        working-directory: ./azure_terraform
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Generate tfbackend file
+        # We need the backend config again to re-initialize Terraform on this new runner
+        run: |
+          cat <<EOF > config.tfbackend
+          access_key           = "${{ secrets.TF_STATE_ACCESS_KEY }}"
+          storage_account_name = "${{ secrets.TF_STATE_STORAGE_ACCOUNT }}"
+          EOF
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+
+      - name: Terraform Init
+        run: terraform init -backend-config=config.tfbackend
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
