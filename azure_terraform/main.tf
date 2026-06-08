@@ -14,13 +14,13 @@ module "network" {
   }
 }
 
-module "acr" {
-  source = "./modules/acr"
-  resource_group = {
-    loc  = azurerm_resource_group.rg.location
-    name = azurerm_resource_group.rg.name
-  }
-}
+# module "acr" {
+#   source = "./modules/acr"
+#   resource_group = {
+#     loc  = azurerm_resource_group.rg.location
+#     name = azurerm_resource_group.rg.name
+#   }
+# }
 
 module "vm" {
   source = "./modules/vms"
