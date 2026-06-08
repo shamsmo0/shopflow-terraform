@@ -1,0 +1,5 @@
+.env
+azure_terraform/keys
+azure_terraform/terraform.tfvars
+azure_terraform/.terraform.lock.hcl
+azure_terraform/.terraform

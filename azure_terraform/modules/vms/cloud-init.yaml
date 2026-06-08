@@ -1,0 +1,43 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+
+write_files:
+  - path: /opt/pull-acr-image.sh
+    permissions: "0700"
+    owner: root:root
+    content: |
+      #!/bin/bash
+      # Define ACR variables
+      ACR_REGISTRY="${acr_login_server}"
+      ACR_USERNAME="${acr_username}"
+      ACR_PASSWORD="${acr_password}"
+      IMAGE_NAME="ecomerce-backend:latest"
+
+      echo "Logging into Azure Container Registry..."
+      # Use --password-stdin to prevent password warnings in logs
+      echo "$ACR_PASSWORD" | docker login "$ACR_REGISTRY" --username "$ACR_USERNAME" --password-stdin
+
+      # echo "Pulling Docker image..."
+      # docker pull "$${ACR_REGISTRY}/$${IMAGE_NAME}"
+
+      # echo "Logging out to clean up credentials..."
+      # docker logout "$ACR_REGISTRY"
+
+runcmd:
+  # 1. Download and run the official Docker convenience installation script
+  - curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
+  - sh /tmp/get-docker.sh
+
+  # 2. Ensure Docker is enabled and running
+  - systemctl enable docker
+  - systemctl start docker
+
+  # 3. Execute our custom ACR pull script
+  - /opt/pull-acr-image.sh
+
+  # 4. (Optional) Remove the script after execution to clean up credentials
+  - rm /opt/pull-acr-image.sh
