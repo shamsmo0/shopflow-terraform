@@ -7,8 +7,8 @@ on:
         types: 
             - synchronize
             - opened
-        # paths: 
-        #     - ../../backend
+        paths: 
+            - ../../backend
 jobs:
     push:
         runs-on: "ubuntu-latest"

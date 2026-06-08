@@ -6,6 +6,7 @@ on:
       - main
     types:
       - closed
+
 env:
   ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
   ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -27,15 +28,8 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Generate tfbackend and tfvars files
+      - name: Generate tfvars file
         run: |
-          # Create config.tfbackend
-          cat <<EOF > config.tfbackend
-          access_key           = "${{ secrets.TF_STATE_ACCESS_KEY }}"
-          storage_account_name = "${{ secrets.TF_STATE_STORAGE_ACCOUNT }}"
-          EOF
-          
-          # Create terraform.tfvars
           cat <<EOF > terraform.tfvars
           config = {
             username     = "${{ secrets.VM_USERNAME }}"
@@ -50,18 +44,21 @@ jobs:
           EOF
 
       - name: Terraform Init
-        # Tell Terraform to use the backend config file we just created
-        run: terraform init -backend-config=config.tfbackend
+        # We pass the backend secrets directly here, bypassing any file formatting issues
+        run: |
+          terraform init \
+            -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}" \
+            -backend-config="access_key=${{ secrets.TF_STATE_ACCESS_KEY }}"
 
       - name: Terraform Plan
-        # Terraform will automatically pick up terraform.tfvars
         run: terraform plan -out=tfplan
 
       - name: Upload Terraform Plan
         uses: actions/upload-artifact@v4
         with:
           name: tfplan
-          path: tfplan
+          # Upload artifact ignores the default working directory, so we must be explicit
+          path: azure_terraform/tfplan
 
   terraform-apply:
     if: github.event.pull_request.merged == true
@@ -79,21 +76,18 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Generate tfbackend file
-        # We need the backend config again to re-initialize Terraform on this new runner
-        run: |
-          cat <<EOF > config.tfbackend
-          access_key           = "${{ secrets.TF_STATE_ACCESS_KEY }}"
-          storage_account_name = "${{ secrets.TF_STATE_STORAGE_ACCOUNT }}"
-          EOF
-
       - name: Download Terraform Plan
         uses: actions/download-artifact@v4
         with:
           name: tfplan
+          # Download artifact ignores the default working directory, so we must be explicit
+          path: azure_terraform
 
       - name: Terraform Init
-        run: terraform init -backend-config=config.tfbackend
+        run: |
+          terraform init \
+            -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE_ACCOUNT }}" \
+            -backend-config="access_key=${{ secrets.TF_STATE_ACCESS_KEY }}"
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
