@@ -32,4 +32,4 @@ jobs:
               with:
                 context: backend/
                 push: true 
-                tags: ${{ secrets.DOCKERHUB_REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/ecommerce-backend:latest
+                tags: ${{ secrets.DOCKERHUB_REGISTRY }}/ecommerce-backend:latest
